@@ -31,6 +31,9 @@ input:focus,select:focus{outline:2px solid #e2b07a;border-color:var(--accent)}
 .prow{display:grid;grid-template-columns:14px 1.4fr 1fr 1fr .8fr auto auto;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .prow .sw{width:14px;height:34px;border-radius:4px}
 .prow input{padding:7px 8px;font-size:14px}
+.fld{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fld span{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow,.srow{align-items:end}
 .rot{display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--muted);line-height:1.2;cursor:pointer;user-select:none}
 .rot input{width:18px;height:18px;margin:0 0 2px}
 .del{border:none;background:#f6e3e0;color:var(--warn);width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer}
@@ -47,7 +50,7 @@ input:focus,select:focus{outline:2px solid #e2b07a;border-color:var(--accent)}
 }
 @media(max-width:560px){
   .prow{grid-template-columns:10px 1fr 1fr 1fr;grid-template-areas:"s n n n" "s w h q" "s r r d"}
-  .prow .sw{grid-area:s;width:10px;height:100%}
+  .prow .sw{grid-area:s;width:10px;height:auto;align-self:stretch}
   .prow .in-n{grid-area:n}.prow .in-w{grid-area:w}.prow .in-h{grid-area:h}.prow .in-q{grid-area:q}
   .prow .rot{grid-area:r;flex-direction:row;gap:6px;justify-content:flex-start}
   .prow .del{grid-area:d;justify-self:end}
@@ -99,7 +102,6 @@ textarea{width:100%;min-height:160px;font-family:ui-monospace,monospace;font-siz
 <main>
   <section class="card">
     <h2><span class="n">1</span> الألواح المتاحة</h2>
-    <div class="shead"><span>اسم اللوح</span><span>العرض (سم)</span><span>الطول (سم)</span><span>المتاح</span><span>السعر</span><span></span></div>
     <div class="pieces" id="stocks"></div>
     <div class="actions">
       <button class="btn sec" id="addStockBtn">＋ لوح بمقاس تاني</button>
@@ -122,7 +124,6 @@ textarea{width:100%;min-height:160px;font-family:ui-monospace,monospace;font-siz
 
   <section class="card">
     <h2><span class="n">2</span> القطع المطلوبة</h2>
-    <div class="phead"><span></span><span>اسم القطعة</span><span>العرض (سم)</span><span>الطول (سم)</span><span>العدد</span><span>تلف؟</span><span></span></div>
     <div class="pieces" id="pieces"></div>
     <div class="actions">
       <button class="btn sec" id="addBtn">＋ إضافة مقاس</button>
@@ -151,7 +152,7 @@ textarea{width:100%;min-height:160px;font-family:ui-monospace,monospace;font-siz
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION = '1.1';
+const VERSION = '1.2';
 document.getElementById('ver').textContent = 'v' + VERSION;
 
 const COLORS = ['#f4a261','#8ecae6','#a7c957','#e9c46a','#cdb4db','#f28482','#84a59d','#ffb4a2','#90be6d','#bde0fe','#ffd166','#b8c0ff','#e5989b','#95d5b2','#f6bd60','#a2d2ff'];
@@ -176,7 +177,11 @@ function loadState(){
       return s;
     }
   }catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULT));
+  // first open: blank start, every count at 0 (the sample is one tap away)
+  const fresh=JSON.parse(JSON.stringify(DEFAULT));
+  fresh.stocks=[{name:'لوح كامل', w:200, h:300, qty:'', price:'', off:false}];
+  fresh.pieces=[{name:'قطعة 1', w:'', h:'', qty:0, rot:true}];
+  return fresh;
 }
 function saveState(){ try{ localStorage.setItem('woodcut_state', JSON.stringify(state)); }catch(e){} }
 state = loadState();
@@ -190,11 +195,11 @@ function renderStocks(){
   state.stocks.forEach((s,i)=>{
     const row=document.createElement('div'); row.className='srow'+(s.off?' off':'');
     row.innerHTML=`
-      <input class="s-n" placeholder="${s.off?'بواقي':'اسم اللوح'}" value="${esc(s.name)}" data-k="name">
-      <input class="s-w" type="number" inputmode="decimal" placeholder="العرض" value="${s.w}" data-k="w" step="0.1" min="0">
-      <input class="s-h" type="number" inputmode="decimal" placeholder="الطول" value="${s.h}" data-k="h" step="0.1" min="0">
-      <input class="s-q" type="number" inputmode="numeric" placeholder="مفتوح" value="${s.qty}" data-k="qty" step="1" min="0">
-      <input class="s-p" type="number" inputmode="decimal" placeholder="السعر" value="${s.price}" data-k="price" step="1" min="0">
+      <label class="fld s-n"><span>${s.off?'اسم البواقي':'اسم اللوح'}</span><input placeholder="${s.off?'بواقي':'اسم اللوح'}" value="${esc(s.name)}" data-k="name"></label>
+      <label class="fld s-w"><span>العرض (سم)</span><input type="number" inputmode="decimal" placeholder="العرض" value="${s.w}" data-k="w" step="0.1" min="0"></label>
+      <label class="fld s-h"><span>الطول (سم)</span><input type="number" inputmode="decimal" placeholder="الطول" value="${s.h}" data-k="h" step="0.1" min="0"></label>
+      <label class="fld s-q"><span>العدد المتاح</span><input type="number" inputmode="numeric" placeholder="مفتوح" value="${s.qty}" data-k="qty" step="1" min="0"></label>
+      <label class="fld s-p"><span>السعر</span><input type="number" inputmode="decimal" placeholder="اختياري" value="${s.price}" data-k="price" step="1" min="0"></label>
       <button class="del" title="حذف">×</button>`;
     row.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('input',()=>{ s[inp.dataset.k]=inp.value; saveState(); }));
     row.querySelector('.del').addEventListener('click',()=>{
@@ -206,7 +211,7 @@ function renderStocks(){
 }
 renderStocks();
 $('addStockBtn').onclick=()=>{ state.stocks.push({name:'لوح '+(state.stocks.length+1), w:'', h:'', qty:'', price:'', off:false}); saveState(); renderStocks(); };
-$('addOffcutBtn').onclick=()=>{ state.stocks.unshift({name:'بواقي', w:'', h:'', qty:1, price:'', off:true}); saveState(); renderStocks(); $('stocks').querySelector('.s-w')?.focus(); };
+$('addOffcutBtn').onclick=()=>{ state.stocks.unshift({name:'بواقي', w:'', h:'', qty:1, price:'', off:true}); saveState(); renderStocks(); $('stocks').querySelector('.s-w input')?.focus(); };
 $('time').value = state.time || '4000';
 $('time').addEventListener('change',()=>{ state.time = $('time').value; saveState(); });
 function renderMode(){ document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===state.mode)); }
@@ -219,10 +224,10 @@ function renderPieces(){
     const row = document.createElement('div'); row.className='prow';
     row.innerHTML = `
       <span class="sw" style="background:${COLORS[i%COLORS.length]}"></span>
-      <input class="in-n" placeholder="اسم القطعة" value="${esc(p.name)}" data-k="name">
-      <input class="in-w" type="number" inputmode="decimal" placeholder="العرض" value="${p.w}" data-k="w" step="0.1" min="0">
-      <input class="in-h" type="number" inputmode="decimal" placeholder="الطول" value="${p.h}" data-k="h" step="0.1" min="0">
-      <input class="in-q" type="number" inputmode="numeric" placeholder="العدد" value="${p.qty}" data-k="qty" step="1" min="1">
+      <label class="fld in-n"><span>اسم القطعة</span><input placeholder="اسم القطعة" value="${esc(p.name)}" data-k="name"></label>
+      <label class="fld in-w"><span>العرض (سم)</span><input type="number" inputmode="decimal" placeholder="العرض" value="${p.w}" data-k="w" step="0.1" min="0"></label>
+      <label class="fld in-h"><span>الطول (سم)</span><input type="number" inputmode="decimal" placeholder="الطول" value="${p.h}" data-k="h" step="0.1" min="0"></label>
+      <label class="fld in-q"><span>العدد</span><input type="number" inputmode="numeric" placeholder="0" value="${p.qty}" data-k="qty" step="1" min="0"></label>
       <label class="rot"><input type="checkbox" ${p.rot?'checked':''} data-k="rot">تلف</label>
       <button class="del" title="حذف">×</button>`;
     row.querySelectorAll('[data-k]').forEach(inp=>{
@@ -236,9 +241,9 @@ function renderPieces(){
 }
 function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 renderPieces();
-$('addBtn').onclick=()=>{ state.pieces.push({name:'قطعة '+(state.pieces.length+1), w:'', h:'', qty:1, rot:true}); saveState(); renderPieces();
-  const ins=$('pieces').querySelectorAll('.in-w'); ins[ins.length-1]?.focus(); };
-$('clearBtn').onclick=()=>{ state.pieces=[{name:'قطعة 1',w:'',h:'',qty:1,rot:true}]; saveState(); renderPieces(); $('results').innerHTML=''; };
+$('addBtn').onclick=()=>{ state.pieces.push({name:'قطعة '+(state.pieces.length+1), w:'', h:'', qty:0, rot:true}); saveState(); renderPieces();
+  const ins=$('pieces').querySelectorAll('.in-w input'); ins[ins.length-1]?.focus(); };
+$('clearBtn').onclick=()=>{ state.pieces=[{name:'قطعة 1',w:'',h:'',qty:0,rot:true}]; saveState(); renderPieces(); $('results').innerHTML=''; };
 $('sampleBtn').onclick=()=>{ const v=state.mode; state=JSON.parse(JSON.stringify(DEFAULT)); state.mode=v;
   ['kerf','trim'].forEach(k=>$(k).value=state[k]); saveState(); renderStocks(); renderPieces(); };
 
