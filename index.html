@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مُحسِّن تقطيع ألواح الخشب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f1e9; --card:#fffdf9; --ink:#2b2118; --muted:#7a6a5a; --line:#e6dccd;
+  --accent:#b5651d; --accent-d:#8c4a10; --ok:#2f7d4f; --warn:#b3261e;
+  --board:#ecd7ae; --board-edge:#a97d43;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6}
+header{background:linear-gradient(135deg,#5a3a1c,#8c4a10);color:#fff;padding:18px 16px 16px}
+header h1{margin:0;font-size:20px;font-weight:800}
+header p{margin:2px 0 0;opacity:.85;font-size:13px}
+.ver{display:inline-block;background:rgba(255,255,255,.18);border-radius:20px;padding:0 10px;font-size:12px;margin-inline-start:8px;vertical-align:middle}
+main{max-width:1100px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(60,40,10,.04)}
+.card h2{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:3px}
+input,select{font-family:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);width:100%}
+input:focus,select:focus{outline:2px solid #e2b07a;border-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.pieces{display:flex;flex-direction:column;gap:8px}
+.prow{display:grid;grid-template-columns:14px 1.4fr 1fr 1fr .8fr auto auto;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.prow .sw{width:14px;height:34px;border-radius:4px}
+.prow input{padding:7px 8px;font-size:14px}
+.rot{display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--muted);line-height:1.2;cursor:pointer;user-select:none}
+.rot input{width:18px;height:18px;margin:0 0 2px}
+.del{border:none;background:#f6e3e0;color:var(--warn);width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer}
+.phead{display:grid;grid-template-columns:14px 1.4fr 1fr 1fr .8fr auto auto;gap:6px;font-size:11.5px;color:var(--muted);padding:0 8px}
+.phead span:nth-child(6){width:44px;text-align:center}.phead span:nth-child(7){width:32px}
+.srow{display:grid;grid-template-columns:1.4fr 1fr 1fr .8fr .9fr auto;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.srow.off{background:#f6faf3;border-color:#d3e6cc}
+.srow input{padding:7px 8px;font-size:14px}
+.shead{display:grid;grid-template-columns:1.4fr 1fr 1fr .8fr .9fr 32px;gap:6px;font-size:11.5px;color:var(--muted);padding:0 8px}
+@media(max-width:560px){
+  .srow{grid-template-columns:1fr 1fr 1fr;grid-template-areas:"n p d" "w h q"}
+  .srow .s-n{grid-area:n}.srow .s-w{grid-area:w}.srow .s-h{grid-area:h}.srow .s-q{grid-area:q}.srow .s-p{grid-area:p}.srow .del{grid-area:d;justify-self:end}
+  .shead{display:none}
+}
+@media(max-width:560px){
+  .prow{grid-template-columns:10px 1fr 1fr 1fr;grid-template-areas:"s n n n" "s w h q" "s r r d"}
+  .prow .sw{grid-area:s;width:10px;height:100%}
+  .prow .in-n{grid-area:n}.prow .in-w{grid-area:w}.prow .in-h{grid-area:h}.prow .in-q{grid-area:q}
+  .prow .rot{grid-area:r;flex-direction:row;gap:6px;justify-content:flex-start}
+  .prow .del{grid-area:d;justify-self:end}
+  .phead{display:none}
+  .prow input::placeholder{color:#b9ab9a}
+}
+.btn{font-family:inherit;font-weight:700;font-size:15px;border:none;border-radius:10px;padding:10px 16px;cursor:pointer}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accent-d)}
+.btn.sec{background:#f1e6d6;color:var(--accent-d)}
+.btn:disabled{opacity:.55;cursor:wait}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.big{width:100%;font-size:17px;padding:14px}
+.progress{height:8px;background:#efe4d4;border-radius:6px;overflow:hidden;margin-top:10px;display:none}
+.progress div{height:100%;width:0;background:linear-gradient(90deg,#d48a3a,#8c4a10);transition:width .15s}
+.status{font-size:13px;color:var(--muted);margin-top:6px;min-height:20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:22px;font-weight:800}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.good b{color:var(--ok)}
+.alert{background:#fbeae7;border:1px solid #f0c2bb;color:var(--warn);border-radius:10px;padding:10px;margin-bottom:10px;font-size:14px}
+.note{background:#eef6f0;border:1px solid #cfe5d6;color:#24563a;border-radius:10px;padding:10px;font-size:13.5px;margin-top:10px}
+.boards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.board{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.board h3{margin:0 0 6px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.board h3 small{font-weight:600;color:var(--muted);font-size:12px}
+.board svg{width:100%;height:auto;max-height:72vh;display:block;margin:0 auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.tbl td,.tbl th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
+.tbl th{color:var(--muted);font-weight:600}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:5px;vertical-align:middle}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.hatch{display:inline-block;width:14px;height:10px;border:1px dashed #6c8f6f;background:repeating-linear-gradient(45deg,#e4f0e2 0 3px,#f6fbf5 3px 6px);vertical-align:middle;margin-inline-end:4px}
+details summary{cursor:pointer;color:var(--accent-d);font-weight:700;font-size:13.5px}
+textarea{width:100%;min-height:160px;font-family:ui-monospace,monospace;font-size:12.5px;border:1px solid var(--line);border-radius:10px;padding:10px;direction:rtl}
+.seg{display:flex;background:#f1e6d6;border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:none;background:transparent;font-family:inherit;font-size:13.5px;padding:7px 6px;border-radius:8px;cursor:pointer;color:var(--accent-d);font-weight:600}
+.seg button.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);color:var(--ink)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2b2118;color:#fff;padding:8px 16px;border-radius:20px;font-size:13.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>🪚 مُحسِّن تقطيع ألواح الخشب <span class="ver" id="ver"></span></h1>
+  <p>اكتب مقاس اللوح والقطع المطلوبة، والبرنامج يجرّب آلاف الرصّات ويختار أقل هدر وأقل عدد ألواح.</p>
+</header>
+<main>
+  <section class="card">
+    <h2><span class="n">1</span> الألواح المتاحة</h2>
+    <div class="shead"><span>اسم اللوح</span><span>العرض (سم)</span><span>الطول (سم)</span><span>المتاح</span><span>السعر</span><span></span></div>
+    <div class="pieces" id="stocks"></div>
+    <div class="actions">
+      <button class="btn sec" id="addStockBtn">＋ لوح بمقاس تاني</button>
+      <button class="btn sec" id="addOffcutBtn">＋ بواقي من شغل قديم</button>
+    </div>
+    <div class="hint">«المتاح» فاضي = عدد مفتوح (هنشتري اللي محتاجينه). البواقي اكتبي عددها بالظبط، والبرنامج هيستغلها الأول لو ده هيوفّر. السعر اختياري — لو كتبتي أسعار كل الألواح، البرنامج بيختار الأرخص في المجموع.</div>
+    <div class="grid" style="margin-top:12px">
+      <label class="f">سُمك سلاح المنشار (مم)<input id="kerf" type="number" inputmode="decimal" min="0" step="0.5"></label>
+      <label class="f">تنظيف الحواف للألواح الكاملة (مم)<input id="trim" type="number" inputmode="decimal" min="0" step="1"></label>
+    </div>
+    <div style="margin-top:12px">
+      <div class="hint" style="margin:0 0 4px">طريقة القص</div>
+      <div class="seg" id="modeSeg">
+        <button data-v="guillotine">قص مستقيم بالطول والعرض (منشار لوح / تربيزة)</button>
+        <button data-v="free">رصّة حرة (CNC)</button>
+      </div>
+      <div class="hint">القص المستقيم: كل قطعة بتطلع بقصّات من حافة لحافة — ده المناسب لمعظم الورش. الرصّة الحرة بتدّي هدر أقل أحياناً لكن محتاجة ماكينة CNC.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span> القطع المطلوبة</h2>
+    <div class="phead"><span></span><span>اسم القطعة</span><span>العرض (سم)</span><span>الطول (سم)</span><span>العدد</span><span>تلف؟</span><span></span></div>
+    <div class="pieces" id="pieces"></div>
+    <div class="actions">
+      <button class="btn sec" id="addBtn">＋ إضافة مقاس</button>
+      <button class="btn sec" id="clearBtn">مسح الكل</button>
+      <button class="btn sec" id="sampleBtn">مثال جاهز</button>
+    </div>
+    <div class="hint">«تلف؟» يعني مسموح البرنامج يدوّر القطعة 90°. اقفلها لو القطعة ليها اتجاه عِرق/قشرة لازم يمشي مع طول اللوح.</div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span> التحسين</h2>
+    <label class="f" style="max-width:320px">مدة التفكير
+      <select id="time">
+        <option value="1500">سريع (ثانية ونص)</option>
+        <option value="4000" selected>عادي (٤ ثواني)</option>
+        <option value="10000">عميق (١٠ ثواني) — لأحسن نتيجة</option>
+      </select>
+    </label>
+    <div class="actions"><button class="btn pri big" id="runBtn">⚡ احسب أحسن رصّة</button></div>
+    <div class="progress" id="prog"><div></div></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section id="results"></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const VERSION = '1.1';
+document.getElementById('ver').textContent = 'v' + VERSION;
+
+const COLORS = ['#f4a261','#8ecae6','#a7c957','#e9c46a','#cdb4db','#f28482','#84a59d','#ffb4a2','#90be6d','#bde0fe','#ffd166','#b8c0ff','#e5989b','#95d5b2','#f6bd60','#a2d2ff'];
+const EPS = 1e-6;
+
+const DEFAULT = {
+  kerf:4, trim:0, mode:'guillotine', time:'4000',
+  stocks:[ {name:'بواقي', w:50, h:200, qty:1, price:'', off:true}, {name:'لوح كامل', w:200, h:300, qty:'', price:'', off:false} ],
+  pieces:[
+    {name:'جنب دولاب', w:58, h:200, qty:2, rot:false},
+    {name:'رف', w:56, h:96, qty:3, rot:true},
+    {name:'ضلفة', w:48, h:198, qty:2, rot:false},
+    {name:'درج أمامي', w:20, h:45, qty:4, rot:true}
+  ]
+};
+let state;
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem('woodcut_state'));
+    if(s && s.pieces){
+      if(!s.stocks) s.stocks=[{name:'لوح كامل', w:s.W||200, h:s.H||300, qty:'', price:s.price||'', off:false}]; // from v1.0
+      return s;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
+function saveState(){ try{ localStorage.setItem('woodcut_state', JSON.stringify(state)); }catch(e){} }
+state = loadState();
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+['kerf','trim'].forEach(k=>{ $(k).value = state[k]; $(k).addEventListener('input',()=>{ state[k] = $(k).value; saveState(); }); });
+
+function renderStocks(){
+  const box=$('stocks'); box.innerHTML='';
+  state.stocks.forEach((s,i)=>{
+    const row=document.createElement('div'); row.className='srow'+(s.off?' off':'');
+    row.innerHTML=`
+      <input class="s-n" placeholder="${s.off?'بواقي':'اسم اللوح'}" value="${esc(s.name)}" data-k="name">
+      <input class="s-w" type="number" inputmode="decimal" placeholder="العرض" value="${s.w}" data-k="w" step="0.1" min="0">
+      <input class="s-h" type="number" inputmode="decimal" placeholder="الطول" value="${s.h}" data-k="h" step="0.1" min="0">
+      <input class="s-q" type="number" inputmode="numeric" placeholder="مفتوح" value="${s.qty}" data-k="qty" step="1" min="0">
+      <input class="s-p" type="number" inputmode="decimal" placeholder="السعر" value="${s.price}" data-k="price" step="1" min="0">
+      <button class="del" title="حذف">×</button>`;
+    row.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('input',()=>{ s[inp.dataset.k]=inp.value; saveState(); }));
+    row.querySelector('.del').addEventListener('click',()=>{
+      if(state.stocks.length<=1){ toast('لازم يفضل لوح واحد على الأقل'); return; }
+      state.stocks.splice(i,1); saveState(); renderStocks();
+    });
+    box.appendChild(row);
+  });
+}
+renderStocks();
+$('addStockBtn').onclick=()=>{ state.stocks.push({name:'لوح '+(state.stocks.length+1), w:'', h:'', qty:'', price:'', off:false}); saveState(); renderStocks(); };
+$('addOffcutBtn').onclick=()=>{ state.stocks.unshift({name:'بواقي', w:'', h:'', qty:1, price:'', off:true}); saveState(); renderStocks(); $('stocks').querySelector('.s-w')?.focus(); };
+$('time').value = state.time || '4000';
+$('time').addEventListener('change',()=>{ state.time = $('time').value; saveState(); });
+function renderMode(){ document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===state.mode)); }
+document.querySelectorAll('#modeSeg button').forEach(b=>b.addEventListener('click',()=>{ state.mode=b.dataset.v; saveState(); renderMode(); }));
+renderMode();
+
+function renderPieces(){
+  const box = $('pieces'); box.innerHTML='';
+  state.pieces.forEach((p,i)=>{
+    const row = document.createElement('div'); row.className='prow';
+    row.innerHTML = `
+      <span class="sw" style="background:${COLORS[i%COLORS.length]}"></span>
+      <input class="in-n" placeholder="اسم القطعة" value="${esc(p.name)}" data-k="name">
+      <input class="in-w" type="number" inputmode="decimal" placeholder="العرض" value="${p.w}" data-k="w" step="0.1" min="0">
+      <input class="in-h" type="number" inputmode="decimal" placeholder="الطول" value="${p.h}" data-k="h" step="0.1" min="0">
+      <input class="in-q" type="number" inputmode="numeric" placeholder="العدد" value="${p.qty}" data-k="qty" step="1" min="1">
+      <label class="rot"><input type="checkbox" ${p.rot?'checked':''} data-k="rot">تلف</label>
+      <button class="del" title="حذف">×</button>`;
+    row.querySelectorAll('[data-k]').forEach(inp=>{
+      inp.addEventListener(inp.type==='checkbox'?'change':'input',()=>{
+        const k=inp.dataset.k; p[k] = inp.type==='checkbox' ? inp.checked : inp.value; saveState();
+      });
+    });
+    row.querySelector('.del').addEventListener('click',()=>{ state.pieces.splice(i,1); saveState(); renderPieces(); });
+    box.appendChild(row);
+  });
+}
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+renderPieces();
+$('addBtn').onclick=()=>{ state.pieces.push({name:'قطعة '+(state.pieces.length+1), w:'', h:'', qty:1, rot:true}); saveState(); renderPieces();
+  const ins=$('pieces').querySelectorAll('.in-w'); ins[ins.length-1]?.focus(); };
+$('clearBtn').onclick=()=>{ state.pieces=[{name:'قطعة 1',w:'',h:'',qty:1,rot:true}]; saveState(); renderPieces(); $('results').innerHTML=''; };
+$('sampleBtn').onclick=()=>{ const v=state.mode; state=JSON.parse(JSON.stringify(DEFAULT)); state.mode=v;
+  ['kerf','trim'].forEach(k=>$(k).value=state[k]); saveState(); renderStocks(); renderPieces(); };
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n)?n:NaN; };
+const fmt = (n,d=1) => { const r = Math.round(n*Math.pow(10,d))/Math.pow(10,d); return String(r); };
+
+// ---------- Packing engine ----------
+// MaxRects (free layout) — heuristics: 0 BSSF, 1 BLSF, 2 BAF, 3 BottomLeft, 4 ContactPoint
+// Guillotine (straight cuts) — choice: 0 BAF, 1 BSSF, 2 BLSF ; split rules 0..5
+function newBin(st){ return {st,W:st.BW,H:st.BH,free:[{x:0,y:0,w:st.BW,h:st.BH}],used:[],area:0}; }
+function fitsStock(it,st){ return (it.w<=st.BW+EPS&&it.h<=st.BH+EPS) || (it.rot&&it.h<=st.BW+EPS&&it.w<=st.BH+EPS); }
+
+function contactScore(bin,x,y,w,h){
+  let s=0;
+  if(Math.abs(x)<EPS || Math.abs(x+w-bin.W)<EPS) s+=h;
+  if(Math.abs(y)<EPS || Math.abs(y+h-bin.H)<EPS) s+=w;
+  for(const u of bin.used){
+    if(Math.abs(u.x-(x+w))<EPS || Math.abs(u.x+u.w-x)<EPS) s+=Math.max(0, Math.min(u.y+u.h,y+h)-Math.max(u.y,y));
+    if(Math.abs(u.y-(y+h))<EPS || Math.abs(u.y+u.h-y)<EPS) s+=Math.max(0, Math.min(u.x+u.w,x+w)-Math.max(u.x,x));
+  }
+  return s;
+}
+function fitScore(mode,heur,bin,f,w,h){
+  const lw=f.w-w, lh=f.h-h;
+  if(mode==='free'){
+    switch(heur){
+      case 0: return [Math.min(lw,lh), Math.max(lw,lh)];
+      case 1: return [Math.max(lw,lh), Math.min(lw,lh)];
+      case 2: return [f.w*f.h-w*h, Math.min(lw,lh)];
+      case 3: return [f.y+h, f.x];
+      default: return [-contactScore(bin,f.x,f.y,w,h), Math.min(lw,lh)];
+    }
+  } else {
+    switch(heur){
+      case 0: return [f.w*f.h-w*h, Math.min(lw,lh)];
+      case 1: return [Math.min(lw,lh), Math.max(lw,lh)];
+      default: return [Math.max(lw,lh), Math.min(lw,lh)];
+    }
+  }
+}
+function better(a,b){ return !b || a[0]<b[0]-EPS || (Math.abs(a[0]-b[0])<=EPS && a[1]<b[1]-EPS); }
+
+function findPos(mode,heur,bin,it){
+  let best=null;
+  for(let i=0;i<bin.free.length;i++){
+    const f=bin.free[i];
+    const opts = it.rot && Math.abs(it.w-it.h)>EPS ? [[it.w,it.h,false],[it.h,it.w,true]] : [[it.w,it.h,false]];
+    for(const [w,h,r] of opts){
+      if(w<=f.w+EPS && h<=f.h+EPS){
+        const s=fitScore(mode,heur,bin,f,w,h);
+        if(better(s,best&&best.s)) best={s,idx:i,x:f.x,y:f.y,w,h,r};
+      }
+    }
+  }
+  return best;
+}
+function placeFree(bin,p){
+  const r={x:p.x,y:p.y,w:p.w,h:p.h};
+  const out=[];
+  for(const f of bin.free){
+    if(r.x>=f.x+f.w-EPS || r.x+r.w<=f.x+EPS || r.y>=f.y+f.h-EPS || r.y+r.h<=f.y+EPS){ out.push(f); continue; }
+    if(r.x>f.x+EPS) out.push({x:f.x,y:f.y,w:r.x-f.x,h:f.h});
+    if(r.x+r.w<f.x+f.w-EPS) out.push({x:r.x+r.w,y:f.y,w:f.x+f.w-(r.x+r.w),h:f.h});
+    if(r.y>f.y+EPS) out.push({x:f.x,y:f.y,w:f.w,h:r.y-f.y});
+    if(r.y+r.h<f.y+f.h-EPS) out.push({x:f.x,y:r.y+r.h,w:f.w,h:f.y+f.h-(r.y+r.h)});
+  }
+  // prune contained
+  const keep=[];
+  for(let i=0;i<out.length;i++){
+    let contained=false; const a=out[i];
+    for(let j=0;j<out.length;j++){
+      if(i===j) continue; const b=out[j];
+      if(a.x>=b.x-EPS && a.y>=b.y-EPS && a.x+a.w<=b.x+b.w+EPS && a.y+a.h<=b.y+b.h+EPS){
+        if(!(Math.abs(a.x-b.x)<EPS&&Math.abs(a.y-b.y)<EPS&&Math.abs(a.w-b.w)<EPS&&Math.abs(a.h-b.h)<EPS) || j<i){ contained=true; break; }
+      }
+    }
+    if(!contained) keep.push(a);
+  }
+  bin.free=keep;
+}
+function placeGuillotine(bin,p,split){
+  const f=bin.free[p.idx]; bin.free.splice(p.idx,1);
+  const lw=f.w-p.w, lh=f.h-p.h;
+  let horiz;
+  switch(split){
+    case 0: horiz = lw<=lh; break;
+    case 1: horiz = lw>lh; break;
+    case 2: horiz = p.w*lh > lw*p.h; break;
+    case 3: horiz = p.w*lh <= lw*p.h; break;
+    case 4: horiz = f.w<=f.h; break;
+    default: horiz = f.w>f.h;
+  }
+  let a,b;
+  if(horiz){ // full-width cut under the piece
+    a={x:f.x, y:f.y+p.h, w:f.w, h:lh};
+    b={x:f.x+p.w, y:f.y, w:lw, h:p.h};
+  } else {   // full-height cut beside the piece
+    a={x:f.x+p.w, y:f.y, w:lw, h:f.h};
+    b={x:f.x, y:f.y+p.h, w:p.w, h:lh};
+  }
+  if(a.w>EPS&&a.h>EPS) bin.free.push(a);
+  if(b.w>EPS&&b.h>EPS) bin.free.push(b);
+  mergeFree(bin);
+}
+function mergeFree(bin){
+  const F=bin.free; let merged=true;
+  while(merged){
+    merged=false;
+    outer: for(let i=0;i<F.length;i++) for(let j=i+1;j<F.length;j++){
+      const a=F[i], b=F[j];
+      if(Math.abs(a.w-b.w)<EPS && Math.abs(a.x-b.x)<EPS){
+        if(Math.abs(a.y+a.h-b.y)<EPS){ a.h+=b.h; F.splice(j,1); merged=true; break outer; }
+        if(Math.abs(b.y+b.h-a.y)<EPS){ a.y=b.y; a.h+=b.h; F.splice(j,1); merged=true; break outer; }
+      }
+      if(Math.abs(a.h-b.h)<EPS && Math.abs(a.y-b.y)<EPS){
+        if(Math.abs(a.x+a.w-b.x)<EPS){ a.w+=b.w; F.splice(j,1); merged=true; break outer; }
+        if(Math.abs(b.x+b.w-a.x)<EPS){ a.x=b.x; a.w+=b.w; F.splice(j,1); merged=true; break outer; }
+      }
+    }
+  }
+}
+
+function placeIn(bin,p,cfg,it){
+  if(cfg.mode==='free') placeFree(bin,p); else placeGuillotine(bin,p,cfg.split);
+  bin.used.push({x:p.x,y:p.y,w:p.w,h:p.h,r:p.r,it});
+  bin.area+=p.w*p.h;
+}
+// stock policy when a new board must be opened: 0 list order, 1 cheapest, 2 largest, 3 best value per area
+function pickStock(cands,pol){
+  if(pol===0) return cands[0];
+  let best=cands[0];
+  for(const s of cands){
+    if(pol===1 ? (s.cost<best.cost || (s.cost===best.cost && s.BW*s.BH<best.BW*best.BH))
+     : pol===2 ? s.BW*s.BH>best.BW*best.BH
+     : s.cost/(s.BW*s.BH) < best.cost/(best.BW*best.BH)) best=s;
+  }
+  return best;
+}
+function packAll(items,cfg,stocks){
+  const bins=[], unplaced=[], left=stocks.map(s=>s.avail);
+  if(cfg.preOpen){ // put the owned offcuts on the table first, so pieces can be fitted into them by best fit
+    for(const st of stocks) if(st.off) while(left[st.i]>0 && left[st.i]!==Infinity && bins.length<40){ bins.push(newBin(st)); left[st.i]--; }
+  }
+  for(const it of items){
+    let best=null, bestBin=null;
+    for(const b of bins){
+      const p=findPos(cfg.mode,cfg.heur,b,it);
+      if(p && (cfg.firstFit ? !best : better(p.s,best&&best.s))){ best=p; bestBin=b; if(cfg.firstFit) break; }
+    }
+    if(!best){
+      const cands=stocks.filter(s=>left[s.i]>0 && fitsStock(it,s));
+      if(!cands.length){ unplaced.push(it); continue; }
+      const st=pickStock(cands,cfg.stockPol||0);
+      const b=newBin(st); const p=findPos(cfg.mode,cfg.heur,b,it);
+      if(!p){ unplaced.push(it); continue; }
+      left[st.i]--; bins.push(b); best=p; bestBin=b;
+    }
+    placeIn(bestBin,best,cfg,it);
+  }
+  for(let i=bins.length-1;i>=0;i--) if(!bins[i].used.length){ left[bins[i].st.i]++; bins.splice(i,1); }
+  if(stocks.length>1) downsize(bins,cfg,stocks,left);
+  bins.sort((a,c)=>(a.st.off-c.st.off) || (c.area/(c.W*c.H)-a.area/(a.W*a.H)));
+  return {bins,unplaced};
+}
+// try moving each board's pieces onto a cheaper available board
+function downsize(bins,cfg,stocks,left){
+  for(let bi=0;bi<bins.length;bi++){
+    const b=bins[bi];
+    const cands=stocks.filter(s=>s!==b.st && left[s.i]>0 && s.cost<b.st.cost-EPS).sort((a,c)=>a.cost-c.cost);
+    for(const st of cands){
+      const nb=newBin(st); let ok=true;
+      const its=b.used.map(u=>u.it).sort((a,c)=>c.w*c.h-a.w*a.h);
+      for(const it of its){ const p=findPos(cfg.mode,cfg.heur,nb,it); if(!p){ok=false;break;} placeIn(nb,p,cfg,it); }
+      if(ok){ left[st.i]--; left[b.st.i]++; bins[bi]=nb; break; }
+    }
+  }
+}
+function scoreBins(res){
+  let cost=0, sq=0, minC=Infinity;
+  for(const b of res.bins){ cost+=b.st.cost; minC=Math.min(minC,b.st.cost); const u=b.area/(b.W*b.H); sq+=u*u; }
+  // nothing left out first, then lowest total cost, then concentrate waste in one board
+  return res.unplaced.length*1e15 + cost - sq*(isFinite(minC)?minC:1)*1e-3;
+}
+
+const SORTS = [
+  (a,b)=> b.w*b.h - a.w*a.h,
+  (a,b)=> Math.max(b.w,b.h) - Math.max(a.w,a.h) || b.w*b.h - a.w*a.h,
+  (a,b)=> (b.w+b.h)-(a.w+a.h),
+  (a,b)=> b.h - a.h || b.w - a.w,
+  (a,b)=> b.w - a.w || b.h - a.h,
+  (a,b)=> Math.min(b.w,b.h) - Math.min(a.w,a.h) || b.w*b.h - a.w*a.h,
+];
+
+let running=false;
+$('runBtn').onclick = run;
+
+function run(){
+  if(running) return;
+  const kerf=(num(state.kerf)||0)/10, trim=(num(state.trim)||0)/10;
+  const stocks=[]; let badTrim=false;
+  state.stocks.forEach((s,si)=>{
+    const W=num(s.w), H=num(s.h); if(!(W>0&&H>0)) return;
+    const q=String(s.qty).trim()===''?Infinity:Math.max(0,Math.round(num(s.qty)||0)); if(q<=0) return;
+    const tr=s.off?0:trim, BW=W-2*tr+kerf, BH=H-2*tr+kerf;
+    if(BW<=kerf||BH<=kerf){ badTrim=true; return; }
+    stocks.push({i:stocks.length,si,name:(s.name||(s.off?'بواقي':'لوح')).trim(),W,H,trim:tr,BW,BH,avail:q,price:num(s.price)>0?num(s.price):0,off:!!s.off});
+  });
+  if(!stocks.length){ toast(badTrim?'تنظيف الحواف أكبر من اللوح!':'اكتب مقاس لوح واحد على الأقل'); return; }
+  // offcuts are already owned: nearly free, so they are used whenever they help
+  const usePrice = stocks.filter(s=>!s.off).every(s=>s.price>0);
+  stocks.forEach(s=>s.cost = usePrice ? (s.off ? (s.price||1) : s.price) : (s.off ? s.W*s.H*0.05 : s.W*s.H));
+
+  const items=[], tooBig=[], pieceDefs=[];
+  state.pieces.forEach((p,pi)=>{
+    const w=num(p.w), h=num(p.h), q=Math.max(0,Math.round(num(p.qty)||0));
+    if(!(w>0&&h>0&&q>0)) return;
+    const def={pi,name:(p.name||'قطعة '+(pi+1)).trim(),w,h,q,rot:!!p.rot,color:COLORS[pi%COLORS.length]};
+    const it0={w:w+kerf,h:h+kerf,rot:def.rot};
+    if(!stocks.some(st=>fitsStock(it0,st))){ tooBig.push(def); return; }
+    pieceDefs.push(def);
+    for(let k=0;k<q;k++) items.push({def,w:it0.w,h:it0.h,rot:def.rot,id:items.length});
+  });
+  if(!items.length && !tooBig.length){ toast('أضف مقاسات القطع المطلوبة'); return; }
+  if(!items.length){ renderResults(null,{kerf,tooBig,pieceDefs}); return; }
+
+  // configurations
+  const mode=state.mode;
+  const pols = stocks.length>1 ? [0,1,2,3] : [0];
+  const pre = stocks.some(s=>s.off && s.avail!==Infinity) ? [false,true] : [false];
+  const combos=[];
+  for(const preOpen of pre) for(const pol of pols){
+    if(mode==='free'){ for(let h=0;h<5;h++) for(let s=0;s<SORTS.length;s++) for(const ff of [false,true]) combos.push({mode,heur:h,sort:s,firstFit:ff,stockPol:pol,preOpen}); }
+    else { for(let h=0;h<3;h++) for(let sp=0;sp<6;sp++) for(let s=0;s<SORTS.length;s++) for(const ff of [false,true]) combos.push({mode,heur:h,split:sp,sort:s,firstFit:ff,stockPol:pol,preOpen}); }
+  }
+  // shuffle so a short run still covers every stock policy
+  for(let i=combos.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [combos[i],combos[j]]=[combos[j],combos[i]]; }
+
+  const totalArea = items.reduce((a,i)=>a+(i.w-kerf)*(i.h-kerf),0);
+  const lb = (stocks.length===1 && stocks[0].avail===Infinity) ? Math.ceil(items.reduce((a,i)=>a+i.w*i.h,0)/(stocks[0].BW*stocks[0].BH) - 1e-9) : null;
+  let best=null, iter=0, ci=0;
+  const budget=+state.time||4000, t0=performance.now();
+  running=true; $('runBtn').disabled=true; $('prog').style.display='block';
+
+  function tryOrder(order,cfg){
+    iter++;
+    const r=packAll(order,cfg,stocks);
+    const sc=scoreBins(r);
+    if(!best || sc<best.score-1e-9){ best={score:sc,bins:r.bins,unplaced:r.unplaced,cfg,order}; }
+  }
+  function rnd(n){ return Math.floor(Math.random()*n); }
+
+  function step(){
+    const ts=performance.now();
+    while(performance.now()-ts<40){
+      if(ci<combos.length){
+        const c=combos[ci++]; tryOrder(items.slice().sort(SORTS[c.sort]), c);
+      } else {
+        const r=Math.random();
+        if(r<0.55 && best){ // local search around best: swap / move items
+          const o=best.order.slice(); const k=1+rnd(3);
+          for(let t=0;t<k;t++){
+            if(Math.random()<0.5){ const i=rnd(o.length), j=rnd(o.length); [o[i],o[j]]=[o[j],o[i]]; }
+            else { const i=rnd(o.length); const [x]=o.splice(i,1); o.splice(rnd(o.length+1),0,x); }
+          }
+          const cfg = Math.random()<0.8 ? best.cfg : combos[rnd(combos.length)];
+          tryOrder(o,cfg);
+        } else { // random noisy sort
+          const c=combos[rnd(combos.length)];
+          const noise=0.05+Math.random()*0.35;
+          const o=items.map(it=>({it,k:Math.max(it.w,it.h)*(1+(Math.random()-.5)*noise)*(c.sort%2?1:it.w*it.h)}))
+                       .sort((a,b)=>b.k-a.k).map(x=>x.it);
+          tryOrder(o,c);
+        }
+      }
+    }
+    const el=performance.now()-t0;
+    $('prog').firstElementChild.style.width=Math.min(100,el/budget*100)+'%';
+    $('status').textContent = `جرّب ${iter.toLocaleString('ar-EG')} رصّة… أحسن نتيجة لحد دلوقتي: ${best?best.bins.length:'—'} لوح`;
+    if(el<budget) setTimeout(step,0);
+    else {
+      running=false; $('runBtn').disabled=false;
+      setTimeout(()=>{$('prog').style.display='none';},400);
+      $('status').textContent = `✓ خلص — جرّب ${iter.toLocaleString('ar-EG')} رصّة مختلفة واختار الأفضل.`;
+      renderResults(best,{kerf,tooBig,pieceDefs,lb,totalArea,mode,stocks,usePrice});
+    }
+  }
+  step();
+}
+
+// ---------- Rendering ----------
+function renderResults(best,ctx){
+  const res=$('results'); let html='';
+  if(ctx.tooBig.length){
+    html+=`<div class="alert">⚠️ القطع دي أكبر من كل الألواح المتاحة ومش هتتقص: ${ctx.tooBig.map(d=>`<b>${esc(d.name)}</b> (${fmt(d.w)}×${fmt(d.h)})`).join('، ')}${ctx.tooBig.some(d=>!d.rot)?' — جرّب تفعّل «تلف» لو مسموح.':''}</div>`;
+  }
+  if(!best){ res.innerHTML=`<div class="card">${html}</div>`; return; }
+  const {kerf}=ctx, bins=best.bins;
+  const usedA=bins.reduce((a,b)=>a+b.used.reduce((x,u)=>x+(u.w-kerf)*(u.h-kerf),0),0);
+  const totalA=bins.reduce((a,b)=>a+b.st.W*b.st.H,0);
+  const util=totalA?usedA/totalA*100:0;
+  const priced=bins.some(b=>b.st.price>0);
+  const cost=bins.reduce((a,b)=>a+b.st.price,0);
+  const minOff=10; // cm — offcuts worth keeping
+  const byStock={};
+  bins.forEach(b=>{ (byStock[b.st.i]=byStock[b.st.i]||{st:b.st,n:0}).n++; });
+  const newBoards=bins.filter(b=>!b.st.off).length;
+
+  if(best.unplaced && best.unplaced.length){
+    const g={}; best.unplaced.forEach(it=>{ (g[it.def.pi]=g[it.def.pi]||{d:it.def,n:0}).n++; });
+    html+=`<div class="alert">⚠️ الألواح المتاحة مش كفاية — فاضل من غير مكان: ${Object.values(g).map(x=>`<b>${esc(x.d.name)}</b> ×${x.n}`).join('، ')}. خلّي عدد الألواح الكاملة «مفتوح» أو زوّديه.</div>`;
+  }
+  html+=`<div class="card"><h2>📊 النتيجة</h2><div class="stats">
+    <div class="stat good"><b>${bins.length}</b><span>عدد الألواح المستخدمة</span></div>
+    <div class="stat"><b>${fmt(util)}%</b><span>نسبة استغلال الخشب</span></div>
+    <div class="stat"><b>${fmt((totalA-usedA)/10000,2)} م²</b><span>إجمالي الهدر والبواقي</span></div>
+    ${priced?`<div class="stat"><b>${cost.toLocaleString('ar-EG')}</b><span>تكلفة الألواح${ctx.usePrice?'':' (اللي ليها سعر بس)'}</span></div>`:''}
+  </div>`;
+  if(ctx.stocks.length>1){
+    html+=`<table class="tbl" style="margin-top:10px"><tr><th>نوع اللوح</th><th>المقاس</th><th>المستخدم</th><th>المتاح</th></tr>`+
+      ctx.stocks.map(st=>`<tr><td>${st.off?'♻️ ':''}${esc(st.name)}</td><td>${fmt(st.W)} × ${fmt(st.H)}</td><td><b>${byStock[st.i]?byStock[st.i].n:0}</b></td><td>${st.avail===Infinity?'مفتوح':st.avail}</td></tr>`).join('')+`</table>`;
+    const offUsed=bins.filter(b=>b.st.off).length;
+    if(offUsed) html+=`<div class="note">♻️ استغلّينا ${offUsed} من البواقي — هتحتاجي تشتري ${newBoards} لوح جديد بس.</div>`;
+  }
+  if(ctx.lb!=null){
+    if(bins.length===ctx.lb) html+=`<div class="note">✅ ده أقل عدد ألواح ممكن نظرياً للمساحة دي — مفيش رصّة تقدر تنزل عنه.</div>`;
+    else html+=`<div class="note">الحد الأدنى النظري ${ctx.lb} لوح (لو الخشب يتقص بدون أي فراغات). لو عايز تجرّب تقرّب له: شغّل «عميق» أو فعّل «تلف» للقطع اللي ينفع تلف.</div>`;
+  }
+  const last=bins[bins.length-1], lastU=last.area/(last.W*last.H)*100;
+  if(bins.length>1 && lastU<35 && !last.st.off) html+=`<div class="note" style="background:#fff6e6;border-color:#f1dbb0;color:#7a4b0c">💡 آخر لوح مستغل ${fmt(lastU,0)}% بس — لو قلّلت قطعة أو اتنين ممكن توفّر لوح كامل، أو احتفظ بالباقي للشغل الجاي.</div>`;
+  html+=`<div class="legend"><span><span class="hatch"></span>بواقي قابلة للاستخدام (أكبر من ${minOff}×${minOff} سم)</span><span>↻ = القطعة ملفوفة 90°</span></div></div>`;
+
+  html+=`<div class="boards">`;
+  bins.forEach((b,bi)=>{
+    const u=b.area/(b.W*b.H)*100;
+    html+=`<div class="board"><h3><span>لوح ${bi+1} · ${b.st.off?'♻️ ':''}${esc(b.st.name)} <small>${fmt(b.st.W)}×${fmt(b.st.H)}</small></span> <small>استغلال ${fmt(u,0)}% · ${b.used.length} قطعة</small></h3>${boardSVG(b,ctx,minOff)}`;
+    // per-board list
+    const groups={};
+    b.used.forEach(u=>{ const k=u.it.def.pi; (groups[k]=groups[k]||{def:u.it.def,n:0}).n++; });
+    html+=`<table class="tbl"><tr><th>القطعة</th><th>المقاس</th><th>العدد</th></tr>`+
+      Object.values(groups).map(g=>`<tr><td><span class="dot" style="background:${g.def.color}"></span>${esc(g.def.name)}</td><td>${fmt(g.def.w)} × ${fmt(g.def.h)}</td><td>${g.n}</td></tr>`).join('')+`</table>`;
+    if(ctx.mode!=='free'){
+      const offs=b.free.map(f=>({w:f.w-kerf,h:f.h-kerf})).filter(f=>Math.min(f.w,f.h)>=minOff).sort((a,b)=>b.w*b.h-a.w*a.h);
+      if(offs.length) html+=`<div class="hint">بواقي تنفع: ${offs.map(o=>`${fmt(o.w)}×${fmt(o.h)}`).join(' ، ')}</div>`;
+    }
+    html+=`</div>`;
+  });
+  html+=`</div>`;
+
+  html+=`<div class="card" style="margin-top:14px"><details><summary>📋 قائمة القص كنص (للنسخ أو الإرسال للورشة)</summary>
+    <textarea id="cutText" readonly>${esc(cutListText(bins,ctx))}</textarea>
+    <div class="actions"><button class="btn sec" id="copyBtn">نسخ القائمة</button></div></details></div>`;
+  res.innerHTML=html;
+  const cb=$('copyBtn'); if(cb) cb.onclick=async()=>{
+    try{ await navigator.clipboard.writeText($('cutText').value); toast('اتنسخت ✓'); }
+    catch(e){ const t=$('cutText'); t.focus(); t.select(); toast('حدّد النص وانسخه يدوي'); }
+  };
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function boardSVG(b,ctx,minOff){
+  const {kerf}=ctx, W=b.st.W, H=b.st.H, trim=b.st.trim;
+  const m=Math.max(W,H)*0.06;
+  const fs=Math.max(W,H)*0.028;
+  let s=`<svg viewBox="${-m} ${-m} ${W+m*1.4} ${H+m*1.4}" xmlns="http://www.w3.org/2000/svg" font-family="Cairo, sans-serif">`;
+  s+=`<defs><pattern id="hp" width="${fs*0.8}" height="${fs*0.8}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="100%" height="100%" fill="#f3faf1"/><line x1="0" y1="0" x2="0" y2="${fs*0.8}" stroke="#bcd8b6" stroke-width="${fs*0.25}"/></pattern></defs>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="${b.st.off?'#e3d3b4':'var(--board)'}" stroke="var(--board-edge)" stroke-width="${fs*0.12}" rx="${fs*0.15}"/>`;
+  // dimension labels
+  s+=`<text x="${W/2}" y="${-m*0.35}" text-anchor="middle" font-size="${fs}" fill="#7a6a5a">${fmt(W)} سم</text>`;
+  s+=`<text x="${-m*0.35}" y="${H/2}" text-anchor="middle" font-size="${fs}" fill="#7a6a5a" transform="rotate(-90 ${-m*0.35} ${H/2})">${fmt(H)} سم</text>`;
+  if(trim>0) s+=`<rect x="${trim}" y="${trim}" width="${W-2*trim}" height="${H-2*trim}" fill="none" stroke="#a97d43" stroke-dasharray="${fs*0.4} ${fs*0.3}" stroke-width="${fs*0.06}"/>`;
+  // offcuts
+  if(ctx.mode!=='free'){
+    b.free.forEach(f=>{
+      const w=f.w-kerf, h=f.h-kerf; if(w<=0.5||h<=0.5) return;
+      const x=trim+f.x, y=trim+f.y;
+      if(Math.min(w,h)>=minOff){
+        s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hp)" stroke="#6c8f6f" stroke-dasharray="${fs*0.3} ${fs*0.2}" stroke-width="${fs*0.06}"/>`;
+        const lf=Math.min(fs*0.85, w/6, h/2.2);
+        if(lf>fs*0.35) s+=`<text x="${x+w/2}" y="${y+h/2+lf*0.35}" text-anchor="middle" font-size="${lf}" fill="#4e7a52">${fmt(w)}×${fmt(h)}</text>`;
+      }
+    });
+  }
+  // pieces
+  b.used.forEach(u=>{
+    const d=u.it.def; const x=trim+u.x, y=trim+u.y, w=u.w-kerf, h=u.h-kerf;
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${d.color}" stroke="#3d2c1c" stroke-width="${fs*0.07}"/>`;
+    const vertical = h>w*1.25;
+    const L = vertical ? h : w, S = vertical ? w : h;
+    const nameT=d.name+(u.r?' ↻':'');
+    const dimT=`${fmt(d.w)}×${fmt(d.h)}`;
+    let f1=Math.min(fs*1.1, S/2.6, L/Math.max(4,nameT.length*0.62));
+    let f2=Math.min(fs*0.9, S/3.2, L/Math.max(4,dimT.length*0.6));
+    const cx=x+w/2, cy=y+h/2;
+    const tr = vertical ? ` transform="rotate(-90 ${cx} ${cy})"` : '';
+    if(f1>fs*0.3){
+      s+=`<g${tr}><text x="${cx}" y="${cy - f2*0.15}" text-anchor="middle" font-size="${f1}" font-weight="700" fill="#2b2118">${esc(nameT)}</text>`;
+      if(f2>fs*0.28) s+=`<text x="${cx}" y="${cy + f2*1.05}" text-anchor="middle" font-size="${f2}" fill="#3d2c1c" direction="ltr">${dimT}</text>`;
+      s+=`</g>`;
+    }
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+function cutListText(bins,ctx){
+  let t=`سلاح المنشار: ${fmt(ctx.kerf*10)} مم\n`;
+  t+=`عدد الألواح: ${bins.length}\n\n`;
+  bins.forEach((b,bi)=>{
+    t+=`— لوح ${bi+1}: ${b.st.name} (${fmt(b.st.W)}×${fmt(b.st.H)} سم)${b.st.trim?` · تنظيف حواف ${fmt(b.st.trim*10)} مم`:''} —\n`;
+    const sorted=b.used.slice().sort((a,c)=>a.y-c.y||a.x-c.x);
+    sorted.forEach(u=>{
+      const d=u.it.def;
+      t+=`• ${d.name}: ${fmt(d.w)}×${fmt(d.h)} سم${u.r?' (ملفوفة)':''} — من الحافة: ${fmt(b.st.trim+u.x)} سم عرضاً، ${fmt(b.st.trim+u.y)} سم طولاً\n`;
+    });
+    t+='\n';
+  });
+  return t.trim();
+}
+</script>
+</body>
+</html>
